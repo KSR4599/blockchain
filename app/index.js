@@ -7,7 +7,7 @@ const P2pServer = require('./p2p-server')
 
 const app = express();
 const bc = new Blockchain();               //Instantiation of the block chain with genesis block.
-const p2pServer = new P2pServer(bc);
+const p2pServer = new P2pServer(bc);      //Adds this is block to the peer-peer server enabling it to hear it for various events of other peer blocks.
 
 
 app.use(bodyParser.json());   // For handling of the json related post data.
@@ -22,7 +22,7 @@ app.post('/mine',(req,res) =>{                          //Upon /mine, the data f
 
   p2pServer.syncChains();        // Whenever a new block gets added to the current chain, this synChains gets called with the current chains instance, which in turn makes teh each socket gets updated with the current(this) block chain.
 
-  res.redirect('/blocks');
+  res.redirect('/blocks');     // Just to visualize the whole chain after mininig the new block.
 })
 
 app.listen(HTTP_PORT, () => console.log(`Listening on port: ${HTTP_PORT}`));      //Specifying which port for the express to listen to.
