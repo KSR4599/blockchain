@@ -3,9 +3,10 @@ const ChainUtil = require('../chain-util');
 class Transaction {
   constructor() {
     this.id = ChainUtil.id();  //Transaction id inorder to identify each transaction in the transaction object collections.
-    this.input = null;       //Input field specifies the information regarding the sender of the transaction
-    this.outputs = [];      //Output field has 2 details 1.)how much currency the sender is giving to the other parties.
-  }                                                    //2.)How much will be left with the sender after the transaction is complete.
+    this.input = null;       //Input field specifies the information regarding the sender of the transaction 1.) Timestamp 2.)Amount 3.)address 4.)Signature
+    this.outputs = [];      //Output field has 2 details 1.)Senders amount(remaining balance) and address(public key) after transaction
+  }                                                    //2.)Recepients amount received  and address
+
 
 
 //Update Transaction method comes handy whenever we want to merge more than one transaction under the same input if they are from the same wallet, as the input field can be relatively same and dont need be updated for each and every transaction but also can get updated once after numerous transactions.
@@ -13,10 +14,13 @@ class Transaction {
   update(senderWallet, recipient, amount) {
   	const senderOutput = this.outputs.find(output => output.address === senderWallet.publicKey);
 
+//Assumption :- Redundant Code
     if (amount > senderOutput.amount) {
       console.log(`Amount: ${amount} exceeds balance.`);
       return;
     }
+
+
 
     senderOutput.amount = senderOutput.amount - amount;
     this.outputs.push({ amount, address: recipient });
@@ -42,6 +46,8 @@ class Transaction {
 
     return transaction;
   }
+
+
   static signTransaction(transaction, senderWallet){
     transaction.input = {
     timestamp: Date.now(),

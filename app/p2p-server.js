@@ -6,11 +6,16 @@ const P2P_PORT = process.env.P2P_PORT || 5001;
 // HTTP_PORT = 3002 P2P_PORT=5003 PEERS =ws://localhost:5001,ws://localhost:5002 npm run dev
 //So inside of our peers we want to store all the peers websocket address separated by , (commas) else set it to empty array
 const peers = process.env.PEERS ? process.env.PEERS.split(',') : [];
+const MESSAGE_TYPES = {
+  chain : 'CHAIN',
+  transaction : 'TRANSACTION'
+}
 
 //This is p2pserver class, which takes the default argument of blockchain
 class P2pServer {
-  constructor(blockchain) {
+  constructor(blockchain, transactionPool) {
     this.blockchain = blockchain;
+    this.transactionPool = transactionPool;
     this.sockets = [];
   }
 //Now we need to listen to the event of 'connection' i.e upon the connection of a new Websocket
@@ -51,13 +56,29 @@ connectToPeers(){
   messageHandler(socket) {            //the current blockchain with the new one.(replaceChain() takes care of the verifications required).(here only current socket or current block chain gets updated)
 	socket.on('message', message => {
     const data = JSON.parse(message);
-
-    this.blockchain.replaceChain(data);
+    switch(data.type) {
+        case MESSAGE_TYPES.chain:
+          this.blockchain.replaceChain(data.chain);
+          break;
+        case MESSAGE_TYPES.transaction:
+          this.transactionPool.updateOrAddTransaction(data.transaction);
+          break;
+      }
   });
 }
 
 sendChain(socket) {
-	socket.send(JSON.stringify(this.blockchain.chain));
+	socket.send(JSON.stringify({
+    type: MESSAGE_TYPES.chain,
+    chain: this.blockchain.chain
+  }));
+}
+
+sendTransaction(socket, transaction) {
+socket.send(JSON.stringify({
+  type: MESSAGE_TYPES.transaction,
+  transaction: transaction
+}));
 }
 
 //The intention of this function is to send the updated chain to all the other peers in the network, so that they can get updated too. We will make us eof the same phenemenon as that of the above.
@@ -65,8 +86,14 @@ sendChain(socket) {
 syncChains() {
 
     this.sockets.forEach(socket => this.sendChain(socket));   //This line means that to send current servers socket chain, to each one of its sockets. So they can get updated.
-
 }
+
+broadcastTransaction(transaction) {
+  	this.sockets.forEach(socket => this.sendTransaction(socket, transaction));
+}
+
+
+
 }
 
 module.exports = P2pServer;
