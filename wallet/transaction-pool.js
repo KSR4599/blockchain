@@ -22,6 +22,30 @@ class TransactionPool {
   existingTransaction(address){
     return this.transactions.find(t => t.input.address === address);
   }
+
+//Valid Transactions method returns all of the transactions in the transaction array with in this pool that satisfy the following conditions:-
+//1.) It's total output amount matches with the original balance specified in the input amount
+//2.) Verifies the signature of every transaction to counterfeit the corrupted transactions.
+
+  validTransactions() {
+  return this.transactions.filter(transaction => {
+    const outputTotal = transaction.outputs.reduce((total, output) => {
+      return total + output.amount;
+    }, 0);
+
+    if (transaction.input.amount !== outputTotal) {
+      console.log(`Invalid transaction from ${transaction.input.address}.`);
+      return;
+    }
+
+    if (!Transaction.verifyTransaction(transaction)) {
+      console.log(`Invalid signature from ${transaction.input.address}.`)
+      return;
+    };
+
+    return transaction;
+  });
+}
 }
 
 module.exports = TransactionPool;
