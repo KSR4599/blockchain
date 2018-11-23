@@ -5,13 +5,14 @@ const HTTP_PORT = process.env.HTTP_PORT || 3001;  //Setting the port for our exp
 const P2pServer = require('./p2p-server');
 const Wallet = require('../wallet');
 const TransactionPool = require('../wallet/transaction-pool');
+const Miner = require('./miner');
 
 const app = express();
 const bc = new Blockchain();               //Instantiation of the block chain with genesis block.
 const wallet = new Wallet();              //Creates  an= new wallet with INITIAL_BALANCE, keyPair and the publicKey
 const tp = new TransactionPool();         //Creates a transactions array [empty intially]
 const p2pServer = new P2pServer(bc, tp);      //Adds this is block to the peer-peer server enabling it to hear it for various events of other peer blocks.
-
+const miner = new Miner(bc, tp, wallet, p2pServer);
 
 app.use(bodyParser.json());   // For handling of the json related post data.
 
@@ -34,10 +35,16 @@ app.get('/transactions',(req, res) =>{
 
 app.post('/transact', (req, res) =>{
   const { recipient , amount } = req.body;                                 //Meant to perform a transaction. Takes two requisites of recipient and amount from the hard-coded json data.
-	const transaction = wallet.createTransaction(recipient, amount, tp);     //Sends the specified amount to the specified recipient from the current wallet. Here createTransaction is fired which creates a new trasaction and add it to the pool or merges with the existing transaction in the pool.
+	const transaction = wallet.createTransaction(recipient, amount, bc ,tp);     //Sends the specified amount to the specified recipient from the current wallet. Here createTransaction is fired which creates a new trasaction and add it to the pool or merges with the existing transaction in the pool.
   p2pServer.broadcastTransaction(transaction);                             //Lets all the peers know about this transaction.
 	res.redirect('/transactions');                                           //Meant to show all of the transactions performed from the current wallet.
 });
+
+app.get('/mine-transaction', (req, res) =>{
+	const block = miner.mine();
+	const.log(`New block has been added : ${block.toString()}`)
+	res.redirect('/blocks')
+})
 
 app.get('/public-key', (req, res) => {
   res.json({ publicKey: wallet.publicKey });                             //Meant to return the public key (address) of the current wallet.
